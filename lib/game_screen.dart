@@ -1,132 +1,135 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 class GameScreen extends StatefulWidget {
-  final int numPlayers;
-  final List<String> playerNames;
   final GameState gameState;
+  final List<String> playerNames;
 
-  GameScreen({required this.numPlayers, required this.playerNames})
-      : gameState = GameState(numPlayers);
+  GameScreen({required this.playerNames})
+      : gameState = GameState(numberOfPlayers: playerNames.length);
 
   @override
-  _GameScreenState createState() => _GameScreenState();
+  _GameScreenState createState() => _GameScreenState(gameState: gameState, playerNames: playerNames);
 }
 
 class _GameScreenState extends State<GameScreen> {
+  GameState gameState;
+  List<String> playerNames;
+  double cellSize = 0;
+
+  _GameScreenState({required this.gameState, required this.playerNames});
+
   void _handleTap(int row, int col) {
     print('タップ: Row: $row, Col: $col');
 
     // 現在のプレイヤーを取得し、駒を配置
-    int currentPlayer = widget.gameState.currentPlayer; // プレイヤー番号を取得するロジックを実装する
-    widget.gameState.placePiece(row, col, currentPlayer);
+    int currentPlayer = gameState.currentPlayer;
+    gameState.placePiece(row, col, currentPlayer);
 
-    // ゲームの状態を更新
+    // 状態が変更されたため、ウィジェットを更新
     setState(() {});
-
-    // 勝利条件のチェック
-    int winner = widget.gameState.checkWinner();
-    if (winner != 0) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("ゲーム終了"),
-            content: Text("プレイヤー $winner の勝利です！"),
-            actions: [
-              FlatButton(
-                child: Text("OK"),
-                onPressed: () {
-                  Navigator.of(context).pop(); // アラートを閉じる
-                  Navigator.of(context).pop(); // ゲーム画面を閉じてタイトル画面に戻る
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-    else {
-      // 勝利者がいない場合、次のプレイヤーに切り替え
-      widget.gameState.switchPlayer();
-    }
   }
 
-  Widget _buildPlayerInfo() {
-    return Container(
-      padding: EdgeInsets.all(16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  @override
+  Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
+    double minDimension = (screenWidth < screenHeight) ? screenWidth : screenHeight;
+    double boardSize = minDimension * 0.8;
+    double cellSize = boardSize / 9;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('神話の銀河'),
+      ),
+      body: Column(
         children: [
-          Text(
-            "Player ${widget.gameState.currentPlayer} ${widget.playerNames[widget.gameState.currentPlayer-1]}",
-            style: TextStyle(fontSize: 24),
+          _buildPlayerInfo(),
+          Expanded(
+            child: Center(
+              child: SizedBox(
+                width: boardSize,
+                height: boardSize,
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    return Stack(
+                      children: [
+                        CustomPaint(
+                          size: Size(boardSize, boardSize),
+                          painter: _GameBoardPainter(gameState: gameState, cellSize: cellSize),
+                        ),
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTapDown: (details) {
+                              RenderBox box = context.findRenderObject()! as RenderBox;
+                              Offset localPosition = box.globalToLocal(details.globalPosition);
+                              int row = (localPosition.dy / cellSize).floor();
+                              int col = (localPosition.dx / cellSize).floor();
+                              _handleTap(row, col);
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
           ),
-          // ここに操作方法やターンの情報などを表示するウィジェットを追加できます
         ],
       ),
     );
   }
 
-  Widget _buildGameBoard() {
-    final cellSize = MediaQuery.of(context).size.width / 24; //ここの数値がゲームボードのサイズに影響する
 
-    return GameBoard(
-      cellSize: cellSize,
-      gameState: widget.gameState,
-      onTap: _handleTap,
-    );
-  }
+  Widget _buildPlayerInfo() {
+    String playerName;
+    if (gameState.currentPlayer <= playerNames.length) {
+      playerName = playerNames[gameState.currentPlayer - 1];
+    } else {
+      playerName = 'Unknown';
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Mythical Galaxy"),
-      ),
-      body: Column(
+    return Padding(
+      padding: EdgeInsets.all(8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildPlayerInfo(),
-          Expanded(child: _buildGameBoard()),
+          Text(
+            "Player ${gameState.currentPlayer} $playerName",
+            style: TextStyle(fontSize: 24),
+          ),
         ],
       ),
     );
   }
 }
 
-class GameBoard extends StatelessWidget {
+
+
+class GameBoardWidget extends StatelessWidget {
   final double cellSize;
   final GameState gameState;
   final void Function(int row, int col) onTap;
 
-  GameBoard({required this.cellSize, required this.gameState, required this.onTap});
-
-  @override
-  _GameScreenState createState() => _GameScreenState();
+  GameBoardWidget({
+    required this.cellSize,
+    required this.gameState,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (details) {
-        // タップした位置を取得
-        final x = details.localPosition.dx;
-        final y = details.localPosition.dy;
-        // ゲームボード上のセルの座標を計算
-        final row = (y / cellSize).floor();
-        final col = (x / cellSize).floor();
-
+        RenderBox box = context.findRenderObject()! as RenderBox;
+        Offset localPosition = box.globalToLocal(details.globalPosition);
+        int row = (localPosition.dy / cellSize).floor();
+        int col = (localPosition.dx / cellSize).floor();
         onTap(row, col);
       },
       child: CustomPaint(
-        painter: _GameBoardPainter(
-          cellSize: cellSize,
-          gameState: gameState,
-        ),
-        child: Container(
-          width: cellSize * 9, // セルの幅と列数に基づいて幅を設定
-          height: cellSize * 9, // セルの高さと行数に基づいて高さを設定
-        ),
+        painter: _GameBoardPainter(gameState: gameState, cellSize: cellSize),
       ),
     );
   }
@@ -135,73 +138,70 @@ class GameBoard extends StatelessWidget {
 class GameState {
   List<List<int>> board;
   int currentPlayer;
-  int numPlayers;
+  bool gameOver;
+  int numberOfPlayers;
 
-  GameState(this.numPlayers)
+  GameState({required this.numberOfPlayers})
       : board = List.generate(9, (_) => List.filled(9, 0)),
-        currentPlayer = 1;
+        currentPlayer = 1,
+        gameOver = false;
 
   void placePiece(int row, int col, int player) {
-    board[row][col] = player;
+    if (board[row][col] == 0 && !gameOver) {
+      board[row][col] = player;
+      _checkForGameOver(row, col, player);
+      _switchPlayer();
+    }
   }
 
-  int checkWinner() {
-    // 勝利条件をチェックするロジックを実装する
-    // 勝者がいる場合はそのプレイヤー番号を返し、それ以外の場合は0を返す
-    return 0;
+  void _checkForGameOver(int row, int col, int player) {
+    // 勝敗判定ロジックを実装します。必要に応じて gameOver を true に設定します。
   }
 
-  void switchPlayer() {
-    currentPlayer = (currentPlayer % numPlayers) + 1;
-  }
-
-  int getPiece(int row, int col) {
-    return board[row][col];
+  void _switchPlayer() {
+    currentPlayer = (currentPlayer % numberOfPlayers) + 1;
   }
 }
 
 
 class _GameBoardPainter extends CustomPainter {
-  final double cellSize;
   final GameState gameState;
+  final double cellSize;
 
-  _GameBoardPainter({required this.cellSize, required this.gameState});
+  _GameBoardPainter({required this.gameState, required this.cellSize});
 
   @override
   void paint(Canvas canvas, Size size) {
+    print('_GameBoardPainter paint');
     final paint = Paint();
-    // 円形のセルを描画
-    for (int row = 0; row < 9; row++) {
-      for (int col = 0; col < 9; col++) {
-        paint.color = Colors.grey[200]!;
-        canvas.drawCircle(
-          Offset(col * cellSize + cellSize / 2, row * cellSize + cellSize / 2),
-          cellSize / 2 - 1,
-          paint,
-        );
-      }
-    }
-    // 境界線を描画
+
+    // 背景を描画
+    paint.color = Colors.grey[200]!;
+    canvas.drawRect(Offset.zero & size, paint);
+
+    // マス目を描画
     paint.color = Colors.black;
-    paint.strokeWidth = 1;
-    for (int i = 0; i <= 9; i++) {
+    paint.strokeWidth = 1.0;
+    for (int i = 0; i <= 9; ++i) {
       canvas.drawLine(Offset(0, i * cellSize), Offset(size.width, i * cellSize), paint);
-      canvas.drawLine(Offset(i * cellSize, 0), Offset(i * cellSize, 9 * cellSize), paint);
+      canvas.drawLine(Offset(i * cellSize, 0), Offset(i * cellSize, size.height), paint);
     }
+
+    // 神話の経路を描画
+    paint.color = Colors.red;
+    paint.strokeWidth = 2.0;
+
     // 駒を描画
-    for (int row = 0; row < 9; row++) {
-      for (int col = 0; col < 9; col++) {
+    for (int row = 0; row < 9; ++row) {
+      for (int col = 0; col < 9; ++col) {
         final player = gameState.board[row][col];
-        var d = DateTime.now();
-        print('player: $player $d');
         if (player != 0) {
-          final colors = [Colors.blue, Colors.red, Colors.green, Colors.yellow, Colors.orange]; // 必要なだけ色を追加
-          paint.color = colors[player - 1];
-          canvas.drawCircle(
-            Offset(col * cellSize + cellSize / 2, row * cellSize + cellSize / 2),
-            cellSize / 2 - 4,
-            paint,
-          );
+          // プレイヤーごとの色を定義
+          final colors = [Colors.blue, Colors.red, Colors.green, Colors.yellow, Colors.purple];
+
+          final paint = Paint()..color = colors[player - 1];
+          final circleCenter = Offset((col + 0.5) * cellSize, (row + 0.5) * cellSize);
+          canvas.drawCircle(circleCenter, cellSize * 0.3, paint);
         }
       }
     }

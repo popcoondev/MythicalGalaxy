@@ -48,12 +48,18 @@ class _NewGameScreenState extends State<NewGameScreen> {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
+                if (_playerNames.length != _numPlayers) {
+                  // すべてのプレイヤー名が入力されていない場合、エラーメッセージを表示する
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('すべてのプレイヤー名を入力してください。')),
+                  );
+                  return;
+                }
                 // ゲーム画面へ遷移
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => GameScreen(
-                      numPlayers: _numPlayers,
                       playerNames: _playerNames,
                     ),
                   ),

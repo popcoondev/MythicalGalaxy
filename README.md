@@ -1,16 +1,23 @@
-# mythicalgalaxy
+# 神話の銀河
 
-Mythical Galaxy Game is an immersive board game experience that combines strategy, mythological gods, and celestial bodies. Play solo or with up to five players, devising unique strategies to conquer planets and harness the power of the gods.
+神話の銀河は、2人以上のプレイヤーが参加できる戦略ボードゲームです。ゲームの目的は、特定の勝利条件を満たすことで相手よりも優れた戦術を見せることです。
 
-## Getting Started
+## ゲームの仕様
 
-This project is a starting point for a Flutter application.
+- ゲームボードは9x9のグリッドで構成されています。
+- それぞれのプレイヤーは、自分のターンにボード上の空いているセルをタップして駒を配置します。
+- 現在のコードでは、勝利条件は実装されていません。具体的な勝利条件を追加してゲームのルールを完成させてください。
 
-A few resources to get you started if this is your first Flutter project:
+## プレイ方法
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+1. ゲームを起動します。
+2. プレイヤーの名前を入力し、プレイヤー数を指定します。
+3. ゲーム画面が表示されるので、順番にタップして駒を配置します。
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+神話の銀河をお楽しみください！
+
+## 今後のアップデート予定
+
+- 勝利条件の実装
+- 駒の移動機能
+- ゲームの終了と再開機能
